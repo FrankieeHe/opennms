@@ -44,6 +44,7 @@ import org.opennms.netmgt.config.PollOutagesConfig;
 import org.opennms.netmgt.config.PollerConfig;
 import org.opennms.netmgt.config.poller.Package;
 import org.opennms.netmgt.daemon.AbstractServiceDaemon;
+import org.opennms.netmgt.dao.api.IfLabel;
 import org.opennms.netmgt.dao.api.MonitoredServiceDao;
 import org.opennms.netmgt.dao.api.OutageDao;
 import org.opennms.netmgt.dao.api.ResourceStorageDao;
@@ -63,6 +64,7 @@ import org.opennms.netmgt.poller.pollables.PollableVisitorAdaptor;
 import org.opennms.netmgt.scheduler.LegacyScheduler;
 import org.opennms.netmgt.scheduler.Schedule;
 import org.opennms.netmgt.scheduler.Scheduler;
+import org.opennms.netmgt.threshd.ThresholdingFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -114,6 +116,12 @@ public class Poller extends AbstractServiceDaemon {
 
     @Autowired
     private ResourceStorageDao m_resourceStorageDao;
+
+    @Autowired
+    private ThresholdingFactory m_thresholdingFactory;
+
+    @Autowired
+    private IfLabel m_ifLabelDao;
 
     @Autowired
     private LocationAwarePollerClient m_locationAwarePollerClient;
@@ -280,6 +288,22 @@ public class Poller extends AbstractServiceDaemon {
 
     public void setLocationAwarePollerClient(LocationAwarePollerClient locationAwarePollerClient) {
         m_locationAwarePollerClient = locationAwarePollerClient;
+    }
+
+    public ThresholdingFactory getThresholdingFactory() {
+        return m_thresholdingFactory;
+    }
+
+    public void setThresholdingFactory(ThresholdingFactory thresholdingFactory) {
+        m_thresholdingFactory = thresholdingFactory;
+    }
+
+    public IfLabel getIfLabelDao() {
+        return m_ifLabelDao;
+    }
+
+    public void setIfLabelDao(IfLabel ifLabelDao) {
+        m_ifLabelDao = ifLabelDao;
     }
 
     /**
@@ -525,7 +549,8 @@ public class Poller extends AbstractServiceDaemon {
 
         PollableService svc = getNetwork().createService(service.getNodeId(), iface.getNode().getLabel(), iface.getNode().getLocation().getLocationName(), addr, serviceName);
         PollableServiceConfig pollConfig = new PollableServiceConfig(svc, m_pollerConfig, m_pollOutagesConfig, pkg,
-                getScheduler(), m_persisterFactory, m_resourceStorageDao, m_locationAwarePollerClient);
+                                                                     getScheduler(), m_persisterFactory, m_thresholdingFactory, m_resourceStorageDao,
+                                                                     m_locationAwarePollerClient, m_ifLabelDao);
         svc.setPollConfig(pollConfig);
         synchronized(svc) {
             if (svc.getSchedule() == null) {
@@ -669,19 +694,6 @@ public class Poller extends AbstractServiceDaemon {
             @Override
             public void visitService(PollableService service) {
                 service.refreshConfig();
-            }
-        };
-        getNetwork().visit(visitor);
-    }
-
-    /**
-     * <p>refreshServiceThresholds</p>
-     */
-    public void refreshServiceThresholds() {
-        PollableVisitor visitor = new PollableVisitorAdaptor() {
-            @Override
-            public void visitService(PollableService service) {
-                service.refreshThresholds();
             }
         };
         getNetwork().visit(visitor);

@@ -32,28 +32,36 @@ import java.io.File;
 import java.net.InetAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.opennms.core.test.MockLogAppender;
+import org.opennms.core.utils.InetAddressUtils;
 import org.opennms.netmgt.collection.persistence.rrd.RrdPersisterFactory;
 import org.opennms.netmgt.config.poller.Package;
+import org.opennms.netmgt.dao.api.IfLabel;
 import org.opennms.netmgt.dao.api.MonitoringLocationDao;
+import org.opennms.netmgt.dao.hibernate.IfLabelDaoImpl;
+import org.opennms.netmgt.dao.hibernate.SnmpInterfaceDaoHibernate;
 import org.opennms.netmgt.dao.support.FilesystemResourceStorageDao;
 import org.opennms.netmgt.mock.MockNetwork;
 import org.opennms.netmgt.mock.MockPollerConfig;
+import org.opennms.netmgt.mock.MockThresholdingFactory;
 import org.opennms.netmgt.poller.MonitoredService;
 import org.opennms.netmgt.poller.PollStatus;
 import org.opennms.netmgt.poller.ServiceMonitor;
 import org.opennms.netmgt.poller.mock.MockMonitoredService;
 import org.opennms.netmgt.poller.support.AbstractServiceMonitor;
 import org.opennms.netmgt.rrd.RrdStrategy;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -63,15 +71,19 @@ import com.google.common.collect.Maps;
  *
  * @author jwhite
  */
+@Transactional
 public class LatencyStoringServiceMonitorAdaptorPersistenceTest {
 
     @Rule
     public TemporaryFolder m_tempFolder = new TemporaryFolder();
 
     private RrdPersisterFactory m_persisterFactory;
+
     private FilesystemResourceStorageDao m_resourceStorageDao;
     private RrdStrategy<Object, Object> m_rrdStrategy;
 
+    private IfLabel m_ifLabelDao;
+    
     @Before
     @SuppressWarnings("unchecked")
     public void setUp() throws Exception {
@@ -82,6 +94,12 @@ public class LatencyStoringServiceMonitorAdaptorPersistenceTest {
         m_persisterFactory.setResourceStorageDao(m_resourceStorageDao);
         m_rrdStrategy = EasyMock.createMock(RrdStrategy.class);
         m_persisterFactory.setRrdStrategy(m_rrdStrategy);
+        // trying w/ Mock - gets unexpected method call
+        // m_ifLabelDao = EasyMock.createMock(IfLabelDaoImpl.class);
+        // trying with hand instantiated Dao object - failes with NPE on HiberateTemplate
+        // m_ifLabelDao = new IfLabelDaoImpl();
+        // m_ifLabelDao.setSnmpInterfaceDao(new SnmpInterfaceDaoHibernate());
+        m_ifLabelDao = null;
     }
 
     @After
@@ -126,7 +144,8 @@ public class LatencyStoringServiceMonitorAdaptorPersistenceTest {
         pollerConfig.setRRAList(pkg, Lists.newArrayList("RRA:AVERAGE:0.5:1:2016"));
 
         LatencyStoringServiceMonitorAdaptor lssma = new LatencyStoringServiceMonitorAdaptor(
-                pollerConfig, pkg, m_persisterFactory, m_resourceStorageDao);
+                pollerConfig, pkg, m_persisterFactory, new MockThresholdingFactory(),
+                m_resourceStorageDao, m_ifLabelDao);
 
         MonitoredService monitoredService = new MockMonitoredService(3, "Firewall", locationName,
                 InetAddress.getByName("192.168.1.5"), "SMTP");
@@ -136,7 +155,9 @@ public class LatencyStoringServiceMonitorAdaptorPersistenceTest {
         params.put("rrd-base-name", "smtp-base");
 
         EasyMock.expect(m_rrdStrategy.getDefaultFileExtension()).andReturn(".jrb").atLeastOnce();
-
+        /*EasyMock.expect(m_ifLabelDao.getIfLabel(EasyMock.anyInt(), EasyMock.anyObject())).andReturn("meh").anyTimes();
+        EasyMock.expect(m_ifLabelDao.getInterfaceInfoFromIfLabel(EasyMock.anyInt(), EasyMock.anyObject())).andReturn(Collections.emptyMap()).anyTimes();
+        */
         m_rrdStrategy.createDefinition(EasyMock.eq("192.168.1.5"),
                 EasyMock.eq(getResponseTimeRoot().toPath().resolve(pathToResourceInResponseTime).toString()),
                 EasyMock.eq("smtp-base"),

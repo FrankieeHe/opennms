@@ -53,7 +53,6 @@ import org.opennms.netmgt.collection.support.DefaultServiceCollectorRegistry;
 import org.opennms.netmgt.collection.test.api.CollectorTestUtils;
 import org.opennms.netmgt.config.CollectdConfigFactory;
 import org.opennms.netmgt.config.PollOutagesConfigFactory;
-import org.opennms.netmgt.config.ThresholdingConfigFactory;
 import org.opennms.netmgt.config.collectd.CollectdConfiguration;
 import org.opennms.netmgt.config.collectd.Collector;
 import org.opennms.netmgt.config.collectd.Filter;
@@ -77,6 +76,8 @@ import org.opennms.netmgt.model.OnmsIpInterface;
 import org.opennms.netmgt.model.OnmsMonitoredService;
 import org.opennms.netmgt.model.OnmsServiceType;
 import org.opennms.netmgt.model.events.EventBuilder;
+import org.opennms.netmgt.threshd.ThresholdingFactory;
+import org.opennms.netmgt.threshd.ThresholdingVisitor;
 import org.opennms.test.mock.EasyMockUtils;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
@@ -131,9 +132,6 @@ public class CollectdIntegrationTest {
         File homeDir = resource.getFile().getParentFile().getParentFile();
         System.setProperty("opennms.home", homeDir.getAbsolutePath());
 
-        resource = new ClassPathResource("/test-thresholds.xml");
-        ThresholdingConfigFactory.setInstance(new ThresholdingConfigFactory(resource.getInputStream()));
-
         // set up test using a string key
         m_key = m_testName.getMethodName()+System.nanoTime();
         m_tests.put(m_key, this);
@@ -166,6 +164,12 @@ public class CollectdIntegrationTest {
             }
             
         };
+
+        ThresholdingFactory mockThresholdingFactory = m_mockUtils.createMock(ThresholdingFactory.class);
+        ThresholdingVisitor mockThresholdingVisitor = m_mockUtils.createMock(ThresholdingVisitor.class);
+        EasyMock.expect(mockThresholdingFactory.createThresholder(EasyMock.anyInt(), EasyMock.anyString(), EasyMock.anyString(), EasyMock.anyObject(), EasyMock.anyObject(),
+                                                                  EasyMock.anyObject())).andReturn(mockThresholdingVisitor);
+        m_collectd.setThresholdingFactory(mockThresholdingFactory);
 
         OnmsServiceType snmp = new OnmsServiceType("SNMP");
         NetworkBuilder netBuilder = new NetworkBuilder();

@@ -54,6 +54,7 @@ import org.opennms.netmgt.config.PollerConfig;
 import org.opennms.netmgt.config.PollerConfigFactory;
 import org.opennms.netmgt.config.poller.Package;
 import org.opennms.netmgt.config.poller.Service;
+import org.opennms.netmgt.dao.api.IfLabel;
 import org.opennms.netmgt.dao.api.ResourceStorageDao;
 import org.opennms.netmgt.dao.support.FilesystemResourceStorageDao;
 import org.opennms.netmgt.filter.FilterDaoFactory;
@@ -63,6 +64,8 @@ import org.opennms.netmgt.poller.LocationAwarePollerClient;
 import org.opennms.netmgt.poller.PollStatus;
 import org.opennms.netmgt.poller.PollerResponse;
 import org.opennms.netmgt.scheduler.Timer;
+import org.opennms.netmgt.threshd.ThresholdingFactory;
+import org.opennms.netmgt.threshd.ThresholdingVisitor;
 import org.opennms.test.JUnitConfigurationEnvironment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -76,6 +79,7 @@ import com.google.common.collect.Lists;
         "classpath:/META-INF/opennms/applicationContext-rpc-client-mock.xml",
         "classpath:/META-INF/opennms/applicationContext-serviceMonitorRegistry.xml",
         "classpath:/META-INF/opennms/applicationContext-rpc-poller.xml",
+        "classpath:/META-INF/opennms/applicationContext-thresholding.xml",
         "classpath:/META-INF/opennms/applicationContext-mockDao.xml"
 })
 @JUnitConfigurationEnvironment(systemProperties={
@@ -85,6 +89,12 @@ public class PollableServiceConfigIT {
 
     @Autowired
     private LocationAwarePollerClient m_locationAwarePollerClient;
+
+    @Autowired
+    private ThresholdingFactory m_thresholdingFactory;
+
+    @Autowired
+    private IfLabel m_ifLabelDao;
 
     @Test
     public void testPollableServiceConfig() throws Exception {
@@ -108,7 +118,8 @@ public class PollableServiceConfigIT {
         final Package pkg = factory.getPackage("MapQuest");
         final Timer timer = mock(Timer.class);
         final PollableServiceConfig psc = new PollableServiceConfig(svc, factory, pollOutagesConfig, pkg, timer,
-                persisterFactory, resourceStorageDao, m_locationAwarePollerClient);
+                                                                    persisterFactory, m_thresholdingFactory, resourceStorageDao,
+                                                                    m_locationAwarePollerClient, m_ifLabelDao);
         PollStatus pollStatus = psc.poll();
         assertThat(pollStatus.getReason(), not(containsString("Unexpected exception")));
     }
@@ -126,6 +137,8 @@ public class PollableServiceConfigIT {
         // Create a future that fails with a RequestTimedOutException
         CompletableFuture<PollerResponse> future = new CompletableFuture<>();
         future.completeExceptionally(new RequestTimedOutException(new Exception("Test")));
+
+        ResourceStorageDao resourceStorageDao = new FilesystemResourceStorageDao();
 
         // Now mock the client to always return the future we created above
         LocationAwarePollerClient client = mock(LocationAwarePollerClient.class, Mockito.RETURNS_DEEP_STUBS);
@@ -153,11 +166,13 @@ public class PollableServiceConfigIT {
         PollOutagesConfig pollOutagesConfig = mock(PollOutagesConfig.class);
         Timer timer = mock(Timer.class);
         PersisterFactory persisterFactory = mock(PersisterFactory.class);
-        ResourceStorageDao resourceStorageDao = mock(ResourceStorageDao.class);
+        ThresholdingFactory thresholdingFactory = mock(ThresholdingFactory.class);
+        ThresholdingVisitor thresholdingVisitor = mock(ThresholdingVisitor.class);
+        when(thresholdingFactory.createThresholder()).thenReturn(thresholdingVisitor);
 
         final PollableServiceConfig psc = new PollableServiceConfig(pollableSvc, pollerConfig,
-                pollOutagesConfig, pkg, timer,
-                persisterFactory, resourceStorageDao, client);
+                pollOutagesConfig, pkg, timer, persisterFactory, thresholdingFactory, 
+                resourceStorageDao, client, m_ifLabelDao);
 
         // Trigger the poll
         PollStatus pollStatus = psc.poll();

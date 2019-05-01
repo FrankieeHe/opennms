@@ -31,29 +31,34 @@ package org.opennms.netmgt.poller.pollables;
 import java.io.File;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.opennms.core.utils.InetAddressUtils;
 import org.opennms.core.utils.ParameterMap;
 import org.opennms.netmgt.collection.api.CollectionSetVisitor;
 import org.opennms.netmgt.collection.api.CollectionStatus;
+import org.opennms.netmgt.collection.api.LatencyCollectionAttribute;
+import org.opennms.netmgt.collection.api.LatencyCollectionAttributeType;
+import org.opennms.netmgt.collection.api.LatencyCollectionResource;
 import org.opennms.netmgt.collection.api.PersisterFactory;
 import org.opennms.netmgt.collection.api.ServiceParameters;
 import org.opennms.netmgt.collection.support.SingleResourceCollectionSet;
 import org.opennms.netmgt.config.PollerConfig;
 import org.opennms.netmgt.config.poller.Package;
+import org.opennms.netmgt.dao.api.IfLabel;
 import org.opennms.netmgt.dao.api.ResourceStorageDao;
-import org.opennms.netmgt.poller.LatencyCollectionAttribute;
-import org.opennms.netmgt.poller.LatencyCollectionAttributeType;
-import org.opennms.netmgt.poller.LatencyCollectionResource;
 import org.opennms.netmgt.poller.MonitoredService;
 import org.opennms.netmgt.poller.PollStatus;
 import org.opennms.netmgt.poller.ServiceMonitorAdaptor;
 import org.opennms.netmgt.rrd.RrdRepository;
 import org.opennms.netmgt.threshd.LatencyThresholdingSet;
+import org.opennms.netmgt.threshd.ThresholdInitializationException;
 import org.opennms.netmgt.threshd.ThresholdingEventProxy;
+import org.opennms.netmgt.threshd.ThresholdingFactory;
 import org.opennms.netmgt.xml.event.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,21 +78,21 @@ public class LatencyStoringServiceMonitorAdaptor implements ServiceMonitorAdapto
     private PollerConfig m_pollerConfig;
     private Package m_pkg;
     private final PersisterFactory m_persisterFactory;
-    private final ResourceStorageDao m_resourceStorageDao;
+    private final ThresholdingFactory m_thresholdingFactory;
 
+    // The Adapter maintains this handle to the thresholding set in order to be able to track threshold state.
     private LatencyThresholdingSet m_thresholdingSet;
 
-    /**
-     * <p>Constructor for LatencyStoringServiceMonitorAdaptor.</p>
-     *
-     * @param monitor a {@link org.opennms.netmgt.poller.ServiceMonitor} object.
-     * @param config a {@link org.opennms.netmgt.config.PollerConfig} object.
-     * @param pkg a {@link org.opennms.netmgt.config.poller.Package} object.
-     */
-    public LatencyStoringServiceMonitorAdaptor(PollerConfig config, Package pkg, PersisterFactory persisterFactory, ResourceStorageDao resourceStorageDao) {
+    private final IfLabel m_ifLabelDao;
+    private ResourceStorageDao m_resourceStorageDao;
+
+    public LatencyStoringServiceMonitorAdaptor(PollerConfig config, Package pkg, PersisterFactory persisterFactory, ThresholdingFactory thresholdingFactory,
+            ResourceStorageDao resourceStorageDao, IfLabel ifLabelDao) {
         m_pollerConfig = config;
         m_pkg = pkg;
         m_persisterFactory = persisterFactory;
+        m_thresholdingFactory = thresholdingFactory;
+        m_ifLabelDao = ifLabelDao;
         m_resourceStorageDao = resourceStorageDao;
     }
 
@@ -130,7 +135,8 @@ public class LatencyStoringServiceMonitorAdaptor implements ServiceMonitorAdapto
             if (m_thresholdingSet == null) {
                 RrdRepository repository = new RrdRepository();
                 repository.setRrdBaseDir(new File(rrdPath));
-                m_thresholdingSet = new LatencyThresholdingSet(service.getNodeId(), service.getIpAddr(), service.getSvcName(), service.getNodeLocation(), repository, m_resourceStorageDao);
+                m_thresholdingSet = m_thresholdingFactory.getLatencyThresholdingSet(service.getNodeId(), service.getIpAddr(), service.getSvcName(), service.getNodeLocation(), repository,
+                                                               m_resourceStorageDao);
             }
             LinkedHashMap<String, Double> attributes = new LinkedHashMap<String, Double>();
             for (String ds : entries.keySet()) {
@@ -144,16 +150,16 @@ public class LatencyStoringServiceMonitorAdaptor implements ServiceMonitorAdapto
             if (m_thresholdingSet.isNodeInOutage()) {
                 LOG.info("applyThresholds: the threshold processing will be skipped because the service {} is on a scheduled outage.", service);
             } else if (m_thresholdingSet.hasThresholds(attributes)) {
-                List<Event> events = m_thresholdingSet.applyThresholds(dsName, attributes);
+                List<Event> events = m_thresholdingSet.applyThresholds(dsName, attributes, m_ifLabelDao);
                 if (events.size() > 0) {
-                    ThresholdingEventProxy proxy = new ThresholdingEventProxy();
+                    ThresholdingEventProxy proxy = m_thresholdingFactory.getEventProxy();
                     proxy.add(events);
                     proxy.sendAllEvents();
                 }
             }
-	} catch(Throwable e) {
-	    LOG.error("Failed to threshold on {} for {} because of an exception", service, dsName, e);
-	}
+        } catch (Throwable e) {
+            LOG.error("Failed to threshold on {} for {} because of an exception", service, dsName, e);
+        }
     }
 
     private void persistLatencySamples(MonitoredService service, Map<String, Number> entries, File rrdRepositoryRoot, String rrdBaseName) {
@@ -170,7 +176,15 @@ public class LatencyStoringServiceMonitorAdaptor implements ServiceMonitorAdapto
         // 2) If multiple entries are present, the DSs are created in the same order that they
         //    appear in the map
 
-        LatencyCollectionResource latencyResource = new LatencyCollectionResource(service.getSvcName(), service.getIpAddr(), service.getNodeLocation());
+        String ifLabel = "";
+        Map<String, String> ifInfo = new HashMap<>();
+        if (m_ifLabelDao != null) {
+            ifLabel = m_ifLabelDao.getIfLabel(service.getNodeId(), InetAddressUtils.addr(service.getIpAddr()));
+            if (ifLabel != null) {
+                ifInfo.putAll(m_ifLabelDao.getInterfaceInfoFromIfLabel(service.getNodeId(), ifLabel));
+            }
+        }
+        LatencyCollectionResource latencyResource = new LatencyCollectionResource(service.getSvcName(), service.getIpAddr(), service.getNodeLocation(), ifLabel, ifInfo);
         for (final Entry<String, Number> entry : entries.entrySet()) {
             final String ds = entry.getKey();
             final Number value = entry.getValue() != null ? entry.getValue() : Double.NaN;
@@ -179,19 +193,11 @@ public class LatencyStoringServiceMonitorAdaptor implements ServiceMonitorAdapto
         }
 
         ServiceParameters params = new ServiceParameters(Collections.emptyMap());
-        CollectionSetVisitor persister = m_persisterFactory.createPersister(params, repository, false, true, true);
-
         SingleResourceCollectionSet collectionSet = new SingleResourceCollectionSet(latencyResource, new Date());
         collectionSet.setStatus(CollectionStatus.SUCCEEDED);
-        collectionSet.visit(persister);
-    }
 
-    /**
-     * Should be called when thresholds configuration has been reloaded
-     */
-    public void refreshThresholds() {
-        if (m_thresholdingSet != null)
-            m_thresholdingSet.reinitialize();
+        CollectionSetVisitor persister = m_persisterFactory.createPersister(params, repository, false, true, true);
+        collectionSet.visit(persister);
     }
 
 }

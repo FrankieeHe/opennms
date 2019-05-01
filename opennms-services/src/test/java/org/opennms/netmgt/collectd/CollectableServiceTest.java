@@ -73,7 +73,10 @@ import org.opennms.netmgt.rrd.RrdStrategy;
 import org.opennms.netmgt.rrd.jrobin.JRobinRrdStrategy;
 import org.opennms.netmgt.scheduler.Scheduler;
 import org.opennms.netmgt.snmp.InetAddrUtils;
+import org.opennms.netmgt.threshd.ThresholdingFactory;
+import org.opennms.netmgt.threshd.ThresholdingFactoryImpl;
 import org.opennms.test.FileAnticipator;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 
 public class CollectableServiceTest {
@@ -244,7 +247,9 @@ public class CollectableServiceTest {
         when(ifaceDao.load(any())).thenReturn(iface);
         when(iface.getIpAddress()).thenReturn(InetAddrUtils.getLocalHostAddress());
 
-        service = new CollectableService(iface, ifaceDao, spec, scheduler, schedulingCompletedFlag, transMgr, persisterFactory, resourceStorageDao);
+        ThresholdingFactory mockThresholdingFactory = mock(ThresholdingFactory.class, RETURNS_DEEP_STUBS);
+
+        service = new CollectableService(iface, ifaceDao, spec, scheduler, schedulingCompletedFlag, transMgr, persisterFactory, mockThresholdingFactory, resourceStorageDao);
     }
 
     private RrdRepository createRrdRepository() throws IOException {

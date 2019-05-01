@@ -80,6 +80,9 @@ import org.opennms.netmgt.model.OnmsNode;
 import org.opennms.netmgt.scheduler.ReadyRunnable;
 import org.opennms.netmgt.scheduler.Scheduler;
 import org.opennms.netmgt.scheduler.mock.MockScheduler;
+import org.opennms.netmgt.threshd.ThresholdInitializationException;
+import org.opennms.netmgt.threshd.ThresholdingFactory;
+import org.opennms.netmgt.threshd.ThresholdingVisitor;
 import org.opennms.test.mock.EasyMockUtils;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
@@ -295,7 +298,14 @@ public class CollectdTest {
   
         expect(m_collectdConfig.getPackages()).andReturn(Collections.singletonList(getCollectionPackageThatMatchesSNMP()));
         expect(m_collectdConfigFactory.interfaceInPackage(iface, getCollectionPackageThatMatchesSNMP())).andReturn(true);
-        
+
+        // Mock Thresholding
+        ThresholdingFactory mockThresholdingFactory = m_easyMockUtils.createMock(ThresholdingFactory.class);
+        ThresholdingVisitor mockThresholdingVisitor = m_easyMockUtils.createMock(ThresholdingVisitor.class);
+        EasyMock.expect(mockThresholdingFactory.createThresholder(EasyMock.anyInt(), EasyMock.anyString(), EasyMock.anyString(), EasyMock.anyObject(), EasyMock.anyObject(),
+                                                                  EasyMock.anyObject())).andReturn(mockThresholdingVisitor);
+        m_collectd.setThresholdingFactory(mockThresholdingFactory);
+
         m_easyMockUtils.replayAll();
 
         assertEquals("scheduler entry count", 0, m_scheduler.getEntryCount());
