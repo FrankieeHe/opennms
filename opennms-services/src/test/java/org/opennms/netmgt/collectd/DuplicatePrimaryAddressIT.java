@@ -234,7 +234,6 @@ public class DuplicatePrimaryAddressIT {
 
         m_filterDao.flushActiveIpAddressListCache();
         EasyMock.expectLastCall().anyTimes();
-        EasyMock.expect(m_filterDao.getActiveIPAddressList("IPADDR IPLIKE *.*.*.*")).andReturn(initialIfs.stream().map(OnmsIpInterface::getIpAddress).collect(Collectors.toList())).anyTimes();
 
         EasyMock.expect(m_nodeDao.load(1)).andReturn(n1).anyTimes();
         EasyMock.expect(m_nodeDao.load(3)).andReturn(n2).anyTimes();
