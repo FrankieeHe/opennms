@@ -1415,4 +1415,17 @@
         <bundle>wrap:mvn:net.sf.jung/jung-api/${jungVersion}</bundle>
         <bundle>mvn:org.opennms/opennms-model/${project.version}</bundle>
     </feature>
+    <feature name="opennms-endpoints" version="${project.version}" description="OpenNMS :: Features :: Endpoints">
+        <feature>guava</feature>
+        <bundle>mvn:org.opennms/opennms-web-api/${project.version}</bundle>
+        <bundle>mvn:org.opennms.features.endpoints/org.opennms.features.endpoints.api/${project.version}</bundle>
+        <bundle>mvn:org.opennms.features.endpoints/org.opennms.features.endpoints.rest/${project.version}</bundle>
+        <bundle>mvn:org.opennms.features.endpoints/org.opennms.features.endpoints.impl/${project.version}</bundle>
+    </feature>
+    <feature name="opennms-endpoints-grafana" version="${project.version}" description="OpenNMS :: Features :: Endpoints :: Grafana">
+        <feature>opennms-endpoints</feature>
+        <bundle>mvn:org.opennms.features.endpoints.adapters.grafana/org.opennms.features.endpoints.adapters.grafana.api/${project.version}</bundle>
+        <bundle>mvn:org.opennms.features.endpoints.adapters.grafana/org.opennms.features.endpoints.adapters.grafana.impl/${project.version}</bundle>
+        <bundle>mvn:org.opennms.features.endpoints.adapters.grafana/org.opennms.features.endpoints.adapters.grafana.rest/${project.version}</bundle>
+    </feature>
 </features>
