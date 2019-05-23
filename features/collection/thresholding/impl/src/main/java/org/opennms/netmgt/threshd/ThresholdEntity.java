@@ -61,6 +61,8 @@ public final class ThresholdEntity implements Cloneable {
     // in the Constructor.  Note that this means we must use a null-key capable map like HashMap
     private Map<String,List<ThresholdEvaluatorState>> m_thresholdEvaluatorStates = new HashMap<String,List<ThresholdEvaluatorState>>();
 
+    private ThresholdingEventProxy m_thresholdingEventProxy;
+
     // the commands for these need to be listed in ThresholdController as well
     static {
         s_thresholdEvaluators = new LinkedList<ThresholdEvaluator>();
@@ -350,7 +352,7 @@ public final class ThresholdEntity implements Cloneable {
                     p.setValue(v);
                     e.addParm(p);
                     LOG.info("sendRearmForTriggeredStates: sending rearm for {}", e);
-                    ThresholdingEventProxyFactory.getFactory().getProxy().add(e);
+                    m_thresholdingEventProxy.sendEvent(e);
                     state.clearState();
                 }
             }

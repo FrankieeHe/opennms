@@ -150,12 +150,7 @@ public class LatencyStoringServiceMonitorAdaptor implements ServiceMonitorAdapto
             if (m_thresholdingSet.isNodeInOutage()) {
                 LOG.info("applyThresholds: the threshold processing will be skipped because the service {} is on a scheduled outage.", service);
             } else if (m_thresholdingSet.hasThresholds(attributes)) {
-                List<Event> events = m_thresholdingSet.applyThresholds(dsName, attributes, m_ifLabelDao);
-                if (events.size() > 0) {
-                    ThresholdingEventProxy proxy = m_thresholdingFactory.getEventProxy();
-                    proxy.add(events);
-                    proxy.sendAllEvents();
-                }
+                m_thresholdingSet.applyThresholds(dsName, attributes, m_ifLabelDao);
             }
         } catch (Throwable e) {
             LOG.error("Failed to threshold on {} for {} because of an exception", service, dsName, e);

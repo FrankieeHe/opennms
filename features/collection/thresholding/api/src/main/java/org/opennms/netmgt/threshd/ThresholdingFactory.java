@@ -43,8 +43,6 @@ public interface ThresholdingFactory {
     ThresholdingVisitor createThresholder(int nodeId, String hostAddress, String serviceName, RrdRepository repo, ServiceParameters svcParams,
             ResourceStorageDao resourceStorageDao) throws ThresholdInitializationException;
 
-    ThresholdingEventProxy getEventProxy();
-
     // TODO - change to take Service as a param
     LatencyThresholdingSet getLatencyThresholdingSet(int nodeId, String hostAddress, String serviceName, String location, RrdRepository repository,
             ResourceStorageDao resourceStorageDao) throws ThresholdInitializationException;

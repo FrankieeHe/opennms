@@ -28,7 +28,6 @@
 
 package org.opennms.netmgt.threshd;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -54,9 +53,11 @@ import org.opennms.netmgt.xml.event.Event;
 public class LatencyThresholdingSetImpl extends ThresholdingSetImpl implements LatencyThresholdingSet
 {
 
-    private final String m_location;
+    private String m_location;
 
-    private final ResourceStorageDao m_resourceStorageDao;
+    private ResourceStorageDao m_resourceStorageDao;
+
+    private ThresholdingEventProxy m_thresholdingEventProxy;
 
     /**
      * <p>Constructor for LatencyThresholdingSet.</p>
@@ -65,14 +66,16 @@ public class LatencyThresholdingSetImpl extends ThresholdingSetImpl implements L
      * @param hostAddress a {@link java.lang.String} object.
      * @param serviceName a {@link java.lang.String} object.
      * @param repository a {@link org.opennms.netmgt.rrd.RrdRepository} object.
+     * @param eventProxy 
      * @param interval a long.
      * @throws ThresholdInitializationException 
      */
-    public LatencyThresholdingSetImpl(int nodeId, String hostAddress, String serviceName, String location, RrdRepository repository, ResourceStorageDao resourceStorageDao)
+    public LatencyThresholdingSetImpl(int nodeId, String hostAddress, String serviceName, String location, RrdRepository repository, ResourceStorageDao resourceStorageDao, ThresholdingEventProxy eventProxy)
             throws ThresholdInitializationException {
         super(nodeId, hostAddress, serviceName, repository);
         m_resourceStorageDao = resourceStorageDao;
         m_location = location;
+        m_thresholdingEventProxy = eventProxy;
     }
 
     @Override
@@ -85,7 +88,7 @@ public class LatencyThresholdingSetImpl extends ThresholdingSetImpl implements L
         return false;
     }
 
-    public List<Event> applyThresholds(String svcName, Map<String, Double> attributes, IfLabel ifLabelDao) {
+    public void applyThresholds(String svcName, Map<String, Double> attributes, IfLabel ifLabelDao) {
         String ifLabel = "";
         Map<String, String> ifInfo = new HashMap<>();
         if (ifLabelDao != null) {
@@ -106,7 +109,11 @@ public class LatencyThresholdingSetImpl extends ThresholdingSetImpl implements L
         // we have little choice
         CollectionResourceWrapper resourceWrapper = new CollectionResourceWrapper(new Date(), m_nodeId, m_hostAddress, m_serviceName, m_repository, latencyResource, attributesMap,
                                                                                   m_resourceStorageDao);
-        return Collections.unmodifiableList(applyThresholds(resourceWrapper, attributesMap));
+        List<Event> events = applyThresholds(resourceWrapper, attributesMap);
+        // TODO move sending events into applyThresholds()
+        for (Event event : events) {
+            m_thresholdingEventProxy.sendEvent(event);
+        }
     }
 
     /*

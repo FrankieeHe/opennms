@@ -28,38 +28,47 @@
 
 package org.opennms.netmgt.threshd;
 
+import java.util.List;
+
+import org.opennms.netmgt.events.api.EventProxy;
+import org.opennms.netmgt.xml.event.Event;
+
 /**
- * <p>ThresholdingEventProxyFactory class.</p>
+ * <p>ThresholdingEventProxy class.</p>
  *
  * @author ranger
  * @version $Id: $
  */
-public class ThresholdingEventProxyFactory {
-
-    private static ThresholdingEventProxyFactory instance = new ThresholdingEventProxyFactory();
-
-    private ThreadLocal<ThresholdingEventProxy> eventProxyRef = new ThreadLocal<ThresholdingEventProxy>() {
-        @Override
-        protected ThresholdingEventProxy initialValue() {
-            return new ThresholdingEventProxyImpl();
-        }
-    };
-
-    private ThresholdingEventProxyFactory() {}
+public interface ThresholdingEventProxy extends EventProxy {
+    
+    /**
+     * <p>add</p>
+     *
+     * @param event a {@link org.opennms.netmgt.xml.event.Event} object.
+     */
+    @Deprecated
+    public void add(Event event);
 
     /**
-     * <p>getProxy</p>
+     * <p>add</p>
      *
-     * @return a {@link org.opennms.netmgt.threshd.ThresholdingEventProxy} object.
+     * @param events a {@link java.util.List} object.
      */
-    public ThresholdingEventProxy getProxy() {
-        return eventProxyRef.get();
-    }
+    @Deprecated
+    public void add(List<Event> events);
 
     /**
-     * <p>getFactory</p>
-     *
-     * @return a {@link org.opennms.netmgt.threshd.ThresholdingEventProxyFactory} object.
+     * <p>removeAllEvents</p>
      */
-    public static ThresholdingEventProxyFactory getFactory() { return instance; }
+    @Deprecated
+    public void removeAllEvents();
+    
+    /**
+     * <p>sendAllEvents</p>
+     */
+    @Deprecated
+    public void sendAllEvents();
+
+    public void sendEvent(Event event);
+
 }

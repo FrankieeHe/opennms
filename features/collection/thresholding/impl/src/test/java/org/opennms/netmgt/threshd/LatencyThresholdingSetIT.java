@@ -102,6 +102,7 @@ import org.springframework.test.context.ContextConfiguration;
         "classpath:/META-INF/opennms/applicationContext-minimal-conf.xml",
         "classpath:/META-INF/opennms/applicationContext-dao.xml",
         "classpath:/META-INF/opennms/applicationContext-daemon.xml",
+        "classpath:/META-INF/opennms/applicationContext-thresholdingTest.xml",
         "classpath:/META-INF/opennms/mockEventIpcManager.xml"
 })
 @JUnitConfigurationEnvironment
@@ -128,6 +129,9 @@ public class LatencyThresholdingSetIT implements TemporaryDatabaseAware<MockData
     private IfLabel m_ifLabelDao;
 
     private Map<String, String> mockIfInfo;
+
+    @Autowired
+    private ThresholdingEventProxy m_eventProxy;
 
     private static final Comparator<Parm> PARM_COMPARATOR = new Comparator<Parm>() {
         @Override
@@ -279,21 +283,17 @@ public class LatencyThresholdingSetIT implements TemporaryDatabaseAware<MockData
         EasyMock.expect(m_ifLabelDao.getInterfaceInfoFromIfLabel(EasyMock.anyInt(), EasyMock.anyString())).andReturn(mockIfInfo).anyTimes();
         EasyMock.replay(m_ifLabelDao);
 
-        LatencyThresholdingSetImpl thresholdingSet = new LatencyThresholdingSetImpl(1, ipAddress, "HTTP", null, getRepository(), m_resourceStorageDao);
+        LatencyThresholdingSetImpl thresholdingSet = new LatencyThresholdingSetImpl(1, ipAddress, "HTTP", null, getRepository(), m_resourceStorageDao, m_eventProxy);
         assertTrue(thresholdingSet.hasThresholds()); // Global Test
         Map<String, Double> attributes = new HashMap<String, Double>();
         attributes.put("http", 200.0);
         assertTrue(thresholdingSet.hasThresholds(attributes)); // Datasource Test
 
-        List<Event> triggerEvents = new ArrayList<>();
-        for (int i=0; i<5; i++)
-            triggerEvents.addAll(thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao));
-        assertTrue(triggerEvents.size() == 1);
+        for (int i = 0; i < 5; i++) {
+            thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
+        }
 
         addEvent(EventConstants.HIGH_THRESHOLD_EVENT_UEI, "127.0.0.1", "HTTP", 5, 100.0, 50.0, 200.0, IfLabel.NO_IFLABEL, "127.0.0.1[http]", "http", IfLabel.NO_IFLABEL, null, m_eventIpcManager.getEventAnticipator(), m_anticipatedEvents);
-        ThresholdingEventProxy proxy = new ThresholdingEventProxyImpl();
-        proxy.add(triggerEvents);
-        proxy.sendAllEvents();
         verifyEvents(0);
     }
 
@@ -313,7 +313,7 @@ public class LatencyThresholdingSetIT implements TemporaryDatabaseAware<MockData
         EasyMock.expect(m_ifLabelDao.getInterfaceInfoFromIfLabel(EasyMock.anyInt(), EasyMock.anyString())).andReturn(mockIfInfo).anyTimes();
         EasyMock.replay(m_ifLabelDao);
 
-        LatencyThresholdingSetImpl thresholdingSet = new LatencyThresholdingSetImpl(1, ipAddress, "StrafePing", null, getRepository(), m_resourceStorageDao);
+        LatencyThresholdingSetImpl thresholdingSet = new LatencyThresholdingSetImpl(1, ipAddress, "StrafePing", null, getRepository(), m_resourceStorageDao, m_eventProxy);
         assertTrue(thresholdingSet.hasThresholds());
         Map<String, Double> attributes = new HashMap<String, Double>();
         for (double i=1; i<21; i++) {
@@ -323,12 +323,9 @@ public class LatencyThresholdingSetIT implements TemporaryDatabaseAware<MockData
         attributes.put("median", 100.0);
         attributes.put(PollStatus.PROPERTY_RESPONSE_TIME, 100.0);
         assertTrue(thresholdingSet.hasThresholds(attributes));
-        List<Event> triggerEvents = thresholdingSet.applyThresholds("StrafePing", attributes, m_ifLabelDao);
-        assertTrue(triggerEvents.size() == 1);
+        thresholdingSet.applyThresholds("StrafePing", attributes, m_ifLabelDao);
+
         addEvent(EventConstants.HIGH_THRESHOLD_EVENT_UEI, "127.0.0.1", "StrafePing", 1, 50.0, 25.0, 60.0, ifName, "127.0.0.1[StrafePing]", "loss", "eth0", null, m_eventIpcManager.getEventAnticipator(), m_anticipatedEvents);
-        ThresholdingEventProxy proxy = new ThresholdingEventProxyImpl();
-        proxy.add(triggerEvents);
-        proxy.sendAllEvents();
         verifyEvents(0);
     }
 
@@ -349,44 +346,37 @@ public class LatencyThresholdingSetIT implements TemporaryDatabaseAware<MockData
         EasyMock.expect(m_ifLabelDao.getInterfaceInfoFromIfLabel(EasyMock.anyInt(), EasyMock.anyString())).andReturn(mockIfInfo).anyTimes();
         EasyMock.replay(m_ifLabelDao);
 
-        LatencyThresholdingSetImpl thresholdingSet = new LatencyThresholdingSetImpl(1, "127.0.0.1", "HTTP", null, getRepository(), m_resourceStorageDao);
+        LatencyThresholdingSetImpl thresholdingSet = new LatencyThresholdingSetImpl(1, "127.0.0.1", "HTTP", null, getRepository(), m_resourceStorageDao, m_eventProxy);
         assertTrue(thresholdingSet.hasThresholds()); // Global Test
         Map<String, Double> attributes = new HashMap<String, Double>();
         attributes.put("http", 90.0);
         assertTrue(thresholdingSet.hasThresholds(attributes)); // Datasource Test
-        List<Event> triggerEvents = thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
-        assertTrue(triggerEvents.size() == 0);
+        thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
 
         // Test Trigger
         attributes.put("http", 200.0);
         for (int i = 1; i < 5; i++) {
             LOG.debug("testLatencyThresholdingSet: run number {}", i);
             if (thresholdingSet.hasThresholds(attributes)) {
-                triggerEvents = thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
-                assertTrue(triggerEvents.size() == 0);
+                thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
             }
         }
+        verifyEvents(0);
+
         if (thresholdingSet.hasThresholds(attributes)) {
             LOG.debug("testLatencyThresholdingSet: run number 5");
-            triggerEvents = thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
-            assertTrue(triggerEvents.size() == 1);
+            thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
         }
-        
+        addEvent(EventConstants.HIGH_THRESHOLD_EVENT_UEI, "127.0.0.1", "HTTP", 5, 100.0, 50.0, 200.0, ifName, "127.0.0.1[http]", "http", ifName, ifIndex.toString(),
+                 m_eventIpcManager.getEventAnticipator(), m_anticipatedEvents);
+        verifyEvents(0);
+
         // Test Rearm
-        List<Event> rearmEvents = null;
         if (thresholdingSet.hasThresholds(attributes)) {
             attributes.put("http", 40.0);
-            rearmEvents = thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
-            assertTrue(rearmEvents.size() == 1);
+            thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
         }
-
-        // Validate Events
-        addEvent(EventConstants.HIGH_THRESHOLD_EVENT_UEI, "127.0.0.1", "HTTP", 5, 100.0, 50.0, 200.0, ifName, "127.0.0.1[http]", "http", ifName, ifIndex.toString(), m_eventIpcManager.getEventAnticipator(), m_anticipatedEvents);
         addEvent(EventConstants.HIGH_THRESHOLD_REARM_EVENT_UEI, "127.0.0.1", "HTTP", 5, 100.0, 50.0, 40.0, ifName, "127.0.0.1[http]", "http", ifName, ifIndex.toString(), m_eventIpcManager.getEventAnticipator(), m_anticipatedEvents);
-        ThresholdingEventProxy proxy = new ThresholdingEventProxyImpl();
-        proxy.add(triggerEvents);
-        proxy.add(rearmEvents);
-        proxy.sendAllEvents();
         verifyEvents(0);
     }
 
@@ -406,51 +396,48 @@ public class LatencyThresholdingSetIT implements TemporaryDatabaseAware<MockData
         EasyMock.expect(m_ifLabelDao.getInterfaceInfoFromIfLabel(EasyMock.anyInt(), EasyMock.anyString())).andReturn(mockIfInfo).anyTimes();
         EasyMock.replay(m_ifLabelDao);
 
-        LatencyThresholdingSetImpl thresholdingSet = new LatencyThresholdingSetImpl(1, "127.0.0.1", "HTTP", null, getRepository(), m_resourceStorageDao);
+        LatencyThresholdingSetImpl thresholdingSet = new LatencyThresholdingSetImpl(1, "127.0.0.1", "HTTP", null, getRepository(), m_resourceStorageDao, m_eventProxy);
         assertTrue(thresholdingSet.hasThresholds()); // Global Test
         Map<String, Double> attributes = new HashMap<String, Double>();
         attributes.put("http", 90.0);
         assertTrue(thresholdingSet.hasThresholds(attributes)); // Datasource Test
-        List<Event> triggerEvents = thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
-        assertTrue(triggerEvents.size() == 0);
+        thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
 
         // Testing trigger the threshold 3 times
         attributes.put("http", 200.0);
         for (int i = 1; i <= 3; i++) {
             LOG.debug("testLatencyThresholdingSet: ------------------------------------ trigger number {}", i);
             if (thresholdingSet.hasThresholds(attributes)) {
-                triggerEvents = thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
-                assertTrue(triggerEvents.size() == 0);
+                thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
             }
         }
-        assertTrue(triggerEvents.size() == 0);
         
         // This should reset the counter
         attributes.put("http", 40.0);
         LOG.debug("testLatencyThresholdingSet: ------------------------------------ reseting counter");
-        triggerEvents = thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
+        thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
 
         // Increase the counter again two times, no threshold should be generated
         attributes.put("http", 300.0);
         for (int i = 4; i <= 5; i++) {
             LOG.debug("testLatencyThresholdingSet: ------------------------------------ trigger number {}", i);
             if (thresholdingSet.hasThresholds(attributes)) {
-                triggerEvents = thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
-                assertTrue(triggerEvents.size() == 0);
+                thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
             }
         }
-        
+
+        addEvent(EventConstants.HIGH_THRESHOLD_EVENT_UEI, "127.0.0.1", "HTTP", 5, 100.0, 50.0, 300.0, ifName, "127.0.0.1[http]", "http", ifName, null,
+                 m_eventIpcManager.getEventAnticipator(), m_anticipatedEvents);
+
         // Increase 3 more times and now, the threshold event should be triggered.
         for (int i = 6; i <= 8; i++) {
             LOG.debug("testLatencyThresholdingSet: ------------------------------------ trigger number {}", i);
             if (thresholdingSet.hasThresholds(attributes)) {
-                triggerEvents = thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
-                if (i < 8)
-                    assertTrue(triggerEvents.size() == 0);
+                thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
             }
         }
         
-        assertTrue(triggerEvents.size() == 1);
+        verifyEvents(0);
     }
 
     private RrdRepository getRepository() {

@@ -46,6 +46,7 @@ import org.opennms.netmgt.rrd.RrdRepository;
 import org.opennms.netmgt.xml.event.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Implements CollectionSetVisitor to implement thresholding.
@@ -79,6 +80,9 @@ public class ThresholdingVisitorImpl extends AbstractCollectionSetVisitor implem
     final Map<String, CollectionAttribute> m_attributesMap = new HashMap<String, CollectionAttribute>();
 
 	private Date m_collectionTimestamp;
+
+    @Autowired
+    private ThresholdingEventProxy m_thresholdingEventProxy;
 
     /**
      * Static method create must be used to create new ThresholdingVisitor instance.
@@ -193,9 +197,9 @@ public class ThresholdingVisitorImpl extends AbstractCollectionSetVisitor implem
     @Override
     public void completeResource(CollectionResource resource) {
         List<Event> eventList = m_thresholdingSet.applyThresholds(resource, m_attributesMap, m_collectionTimestamp);
-        ThresholdingEventProxy proxy = ThresholdingEventProxyFactory.getFactory().getProxy();
-        proxy.add(eventList);
-        proxy.sendAllEvents();
+        for (Event event : eventList) {
+            m_thresholdingEventProxy.sendEvent(event);
+        }
     }
     
     /**

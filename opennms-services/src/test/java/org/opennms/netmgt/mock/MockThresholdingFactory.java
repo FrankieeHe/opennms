@@ -33,7 +33,6 @@ import org.opennms.netmgt.dao.api.ResourceStorageDao;
 import org.opennms.netmgt.rrd.RrdRepository;
 import org.opennms.netmgt.threshd.LatencyThresholdingSet;
 import org.opennms.netmgt.threshd.ThresholdInitializationException;
-import org.opennms.netmgt.threshd.ThresholdingEventProxy;
 import org.opennms.netmgt.threshd.ThresholdingFactory;
 import org.opennms.netmgt.threshd.ThresholdingVisitor;
 
@@ -48,11 +47,6 @@ public class MockThresholdingFactory implements ThresholdingFactory {
     public ThresholdingVisitor createThresholder(int nodeId, String hostAddress, String serviceName, RrdRepository repo, ServiceParameters svcParams,
             ResourceStorageDao resourceStorageDao) throws ThresholdInitializationException {
         return new MockThresholder();
-    }
-
-    @Override
-    public ThresholdingEventProxy getEventProxy() {
-        throw new UnsupportedOperationException("MockThresholdingFactory.getEventProxy() not implemented.");
     }
 
     @Override

@@ -1,8 +1,8 @@
 /*******************************************************************************
  * This file is part of OpenNMS(R).
  *
- * Copyright (C) 2009-2014 The OpenNMS Group, Inc.
- * OpenNMS(R) is Copyright (C) 1999-2014 The OpenNMS Group, Inc.
+ * Copyright (C) 2019 The OpenNMS Group, Inc.
+ * OpenNMS(R) is Copyright (C) 1999-2019 The OpenNMS Group, Inc.
  *
  * OpenNMS(R) is a registered trademark of The OpenNMS Group, Inc.
  *
@@ -28,41 +28,18 @@
 
 package org.opennms.netmgt.threshd;
 
-import java.util.List;
-
-import org.opennms.netmgt.events.api.EventProxy;
-import org.opennms.netmgt.xml.event.Event;
+import org.opennms.netmgt.collection.api.CollectionSet;
 
 /**
- * <p>ThresholdingEventProxy class.</p>
- *
- * @author ranger
- * @version $Id: $
+ * Thresholding API Service.
  */
-public interface ThresholdingEventProxy extends EventProxy {
-    
-    /**
-     * <p>add</p>
-     *
-     * @param event a {@link org.opennms.netmgt.xml.event.Event} object.
-     */
-    public void add(Event event);
+public interface ThresholdingService {
 
     /**
-     * <p>add</p>
-     *
-     * @param events a {@link java.util.List} object.
+     * Accept a CollectionSet for Thresholding. Evaluate the CollectionSet, apply thresholds if required, send Events if Thresholds are triggered or re-armed.
+     * 
+     * @param collectionSet
      */
-    public void add(List<Event> events);
-
-    /**
-     * <p>removeAllEvents</p>
-     */
-    public void removeAllEvents();
-    
-    /**
-     * <p>sendAllEvents</p>
-     */
-    public void sendAllEvents();
+    void accept(CollectionSet collectionSet);
 
 }

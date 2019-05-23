@@ -71,8 +71,8 @@ public interface LatencyThresholdingSet extends ThresholdingSet {
 
     /*
      * Apply thresholds definitions for specified service using attributesMap as current values.
-     * Return a list of events to be send if some thresholds must be triggered or be rearmed.
+     * Thresholding Service will send events if some thresholds are triggered or rearmed.
      */
-    public List<Event> applyThresholds(String svcName, Map<String, Double> attributes, IfLabel ifLabelDao);
+    public void applyThresholds(String svcName, Map<String, Double> attributes, IfLabel ifLabelDao);
 
 }

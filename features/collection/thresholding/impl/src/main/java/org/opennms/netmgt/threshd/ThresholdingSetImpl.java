@@ -140,7 +140,6 @@ public class ThresholdingSetImpl {
      */
     public void reinitialize(final boolean reloadThresholdConfig) {
         m_initialized = false;
-        ThresholdingEventProxyFactory.getFactory().getProxy().removeAllEvents();
 
         final ThresholdingConfigFactory tcf = ThresholdingConfigFactory.getInstance();
         final boolean hasThresholds = m_hasThresholds;
@@ -167,7 +166,6 @@ public class ThresholdingSetImpl {
             }
             m_initialized = true;
         }
-        ThresholdingEventProxyFactory.getFactory().getProxy().sendAllEvents();
     }
 
     /*

@@ -14,15 +14,14 @@
     <context:annotation-config />
     <tx:annotation-driven/>
 
-    <bean name="thresholdingEventProxyFactory" class="org.opennms.netmgt.threshd.ThresholdingEventProxyFactory">
-      <property name="eventMgr" ref="eventIpcManager" />
+	<bean name="thresholdingEventProxy" class="org.opennms.netmgt.threshd.ThresholdingEventProxyImpl">
+		<!-- Override Eventd with the mock version -->
+		<property name="eventMgr" ref="mockEventIpcManager"/>
     </bean>
 
-    <bean name="thresholdingEventProxy" class="org.opennms.netmgt.threshd.ThresholdingEventProxyImpl">
-      <property name="eventMgr" ref="eventIpcManager" />
+    <bean id="thresholdingFactory" class="org.opennms.netmgt.threshd.ThresholdingFactoryImpl">
+    	<property name="eventProxy" ref="thresholdingEventProxy"/>
     </bean>
-
-    <bean id="thresholdingFactory" class="org.opennms.netmgt.threshd.ThresholdingFactoryImpl" />
     <onmsgi:service interface="org.opennms.netmgt.threshd.ThresholdingFactory" ref="thresholdingFactory" />
 
     <!-- IfLabelDaoImpl -->

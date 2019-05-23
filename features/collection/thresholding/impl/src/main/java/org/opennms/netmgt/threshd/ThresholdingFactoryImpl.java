@@ -31,8 +31,20 @@ package org.opennms.netmgt.threshd;
 import org.opennms.netmgt.collection.api.ServiceParameters;
 import org.opennms.netmgt.dao.api.ResourceStorageDao;
 import org.opennms.netmgt.rrd.RrdRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class ThresholdingFactoryImpl implements ThresholdingFactory {
+
+    @Autowired
+    private ThresholdingEventProxy eventProxy;
+
+    public ThresholdingEventProxy getEventProxy() {
+        return eventProxy;
+    }
+
+    public void setEventProxy(ThresholdingEventProxy eventProxy) {
+        this.eventProxy = eventProxy;
+    }
 
     public ThresholdingVisitor createThresholder() {
         // FIXME - pass through CollectorThresholdingSet
@@ -49,12 +61,6 @@ public class ThresholdingFactoryImpl implements ThresholdingFactory {
     @Override
     public LatencyThresholdingSet getLatencyThresholdingSet(int nodeId, String hostAddress, String serviceName, String location, RrdRepository repository,
             ResourceStorageDao resourceStorageDao) throws ThresholdInitializationException {
-        return new LatencyThresholdingSetImpl(nodeId, hostAddress, serviceName, location, repository, resourceStorageDao);
+        return new LatencyThresholdingSetImpl(nodeId, hostAddress, serviceName, location, repository, resourceStorageDao, eventProxy);
     }
-
-    @Override
-    public ThresholdingEventProxy getEventProxy() {
-        return new ThresholdingEventProxyImpl();
-    }
-
 }
