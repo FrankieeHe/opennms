@@ -112,15 +112,15 @@ workflows:
             - build-horizon-oci
             - build-minion-oci
             - build-sentinel-oci
-           #- publish-horizon-oci:
-           #    requires:
-           #      - build-horizon-oci
-           #- publish-minion-oci:
-           #    requires:
-           #      - build-minion-oci
-           #- publish-sentinel-oci:
-           #    requires:
-           #      - build-sentinel-oci
+      - publish-horizon-oci:
+          requires:
+            - build-horizon-oci
+      - publish-minion-oci:
+          requires:
+            - build-minion-oci
+      - publish-sentinel-oci:
+          requires:
+            - build-sentinel-oci
 
 jobs:
   build:
@@ -229,6 +229,12 @@ jobs:
           paths:
             - project/opennms-container/sentinel/images/
 
+  publish-horizon-oci:
+    executor: docker-executor
+    steps:
+      - attach_workspace:
+          at: ~/
+      - setup_remote_docker
   integration-test:
     executor: integration-test-executor
     parallelism: 6
