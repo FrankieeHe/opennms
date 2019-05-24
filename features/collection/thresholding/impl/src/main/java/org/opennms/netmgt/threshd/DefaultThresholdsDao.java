@@ -54,6 +54,8 @@ public class DefaultThresholdsDao implements ThresholdsDao, InitializingBean {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultThresholdsDao.class);
     
     private ThresholdingConfigFactory m_thresholdingConfigFactory;
+
+    private ThresholdingEventProxy m_eventProxy;
     
     /** {@inheritDoc} */
     @Override
@@ -125,6 +127,7 @@ public class DefaultThresholdsDao implements ThresholdsDao, InitializingBean {
                     }
                     try {
                         ThresholdEntity thresholdEntity = new ThresholdEntity();
+                        thresholdEntity.setEventProxy(m_eventProxy);
                         thresholdEntity.addThreshold(wrapper);
                         if (merge) {
                             boolean updated = false;
@@ -205,6 +208,10 @@ public class DefaultThresholdsDao implements ThresholdsDao, InitializingBean {
     @Override
     public void afterPropertiesSet() throws Exception {
         Assert.state(m_thresholdingConfigFactory != null, "thresholdingConfigFactory property not set");
+    }
+
+    public void setEventProxy(ThresholdingEventProxy eventProxy) {
+        m_eventProxy = eventProxy;
     }
 
 }

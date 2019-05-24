@@ -48,14 +48,14 @@ public class ThresholdingFactoryImpl implements ThresholdingFactory {
 
     public ThresholdingVisitor createThresholder() {
         // FIXME - pass through CollectorThresholdingSet
-        return new ThresholdingVisitorImpl(null);
+        return new ThresholdingVisitorImpl(null, null);
     }
 
     @Override
     public ThresholdingVisitor createThresholder(int nodeId, String hostAddress, String serviceName, RrdRepository repo, ServiceParameters svcParams,
             ResourceStorageDao resourceStorageDao)
             throws ThresholdInitializationException {
-        return ThresholdingVisitorImpl.create(nodeId, hostAddress, serviceName, repo, svcParams, resourceStorageDao);
+        return ThresholdingVisitorImpl.create(nodeId, hostAddress, serviceName, repo, svcParams, resourceStorageDao, eventProxy);
     }
 
     @Override

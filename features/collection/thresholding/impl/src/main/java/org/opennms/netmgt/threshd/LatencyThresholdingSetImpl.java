@@ -72,7 +72,7 @@ public class LatencyThresholdingSetImpl extends ThresholdingSetImpl implements L
      */
     public LatencyThresholdingSetImpl(int nodeId, String hostAddress, String serviceName, String location, RrdRepository repository, ResourceStorageDao resourceStorageDao, ThresholdingEventProxy eventProxy)
             throws ThresholdInitializationException {
-        super(nodeId, hostAddress, serviceName, repository);
+        super(nodeId, hostAddress, serviceName, repository, eventProxy);
         m_resourceStorageDao = resourceStorageDao;
         m_location = location;
         m_thresholdingEventProxy = eventProxy;

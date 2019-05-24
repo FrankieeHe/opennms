@@ -1007,9 +1007,6 @@ public class Collectd extends AbstractServiceDaemon implements
         unscheduleNodeAndMarkForDeletion(nodeId);
 
         LOG.debug("nodeCategoryMembershipChanged: unscheduling nodeid {} completed.", nodeId);
-        
-        // Trigger re-evaluation of Threshold Packages, re-evaluating Filters.
-        ThreshdConfigFactory.getInstance().rebuildPackageIpListMap();
 
         scheduleNode(nodeId.intValue(), true);
     }
@@ -1101,23 +1098,11 @@ public class Collectd extends AbstractServiceDaemon implements
         EventUtils.checkInterface(event);
         EventUtils.checkService(event);
 
-        // Before scheduling, update Thrshd packages
-        ThreshdConfigFactory.getInstance().rebuildPackageIpListMap();
-
         // Schedule the interface
         scheduleForCollection(event);
     }
     
     private void handleReloadDaemonConfig(Event event) {
-        final String thresholdsDaemonName = "Threshd";
-        boolean isThresholds = false;
-        for (Parm parm : event.getParmCollection()) {
-            if (EventConstants.PARM_DAEMON_NAME.equals(parm.getParmName()) && thresholdsDaemonName.equalsIgnoreCase(parm.getValue().getContent())) {
-                isThresholds = true;
-                break;
-            }
-        }
-
         final String collectionDaemonName = "Collectd";
         boolean isCollection = false;
         for (Parm parm : event.getParmCollection()) {

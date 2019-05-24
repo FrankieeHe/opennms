@@ -85,18 +85,24 @@ public class ThresholdingVisitorImpl extends AbstractCollectionSetVisitor implem
     private ThresholdingEventProxy m_thresholdingEventProxy;
 
     /**
-     * Static method create must be used to create new ThresholdingVisitor instance.
-     * Is static because successful creation depends on thresholding-enabled parameter.
+     * Static method create must be used to create new ThresholdingVisitor instance. Is static because successful creation depends on thresholding-enabled parameter.
      *
-     * @param nodeId a int.
-     * @param hostAddress a {@link java.lang.String} object.
-     * @param serviceName a {@link java.lang.String} object.
-     * @param repo a {@link org.opennms.netmgt.rrd.RrdRepository} object.
-     * @param svcParams a {@link org.opennms.netmgt.collection.api.ServiceParameters} object.
+     * @param nodeId
+     *            a int.
+     * @param hostAddress
+     *            a {@link java.lang.String} object.
+     * @param serviceName
+     *            a {@link java.lang.String} object.
+     * @param repo
+     *            a {@link org.opennms.netmgt.rrd.RrdRepository} object.
+     * @param svcParams
+     *            a {@link org.opennms.netmgt.collection.api.ServiceParameters} object.
+     * @param eventProxy
      * @return a {@link org.opennms.netmgt.threshd.ThresholdingVisitor} object.
-     * @throws ThresholdInitializationException 
+     * @throws ThresholdInitializationException
      */
-    public static ThresholdingVisitor create(int nodeId, String hostAddress, String serviceName, RrdRepository repo, ServiceParameters svcParams, ResourceStorageDao resourceStorageDao) throws ThresholdInitializationException {
+    public static ThresholdingVisitor create(int nodeId, String hostAddress, String serviceName, RrdRepository repo, ServiceParameters svcParams,
+            ResourceStorageDao resourceStorageDao, ThresholdingEventProxy eventProxy) throws ThresholdInitializationException {
 
         String enabled = ParameterMap.getKeyedString(svcParams.getParameters(), "thresholding-enabled", null);
         if (enabled != null && !"true".equals(enabled)) {
@@ -104,21 +110,26 @@ public class ThresholdingVisitorImpl extends AbstractCollectionSetVisitor implem
             return null;
         }
 
-        CollectorThresholdingSet thresholdingSet = new CollectorThresholdingSet(nodeId, hostAddress, serviceName, repo, svcParams, resourceStorageDao);
+        CollectorThresholdingSet thresholdingSet = new CollectorThresholdingSet(nodeId, hostAddress, serviceName, repo, svcParams, resourceStorageDao, eventProxy);
         if (!thresholdingSet.hasThresholds()) {
             LOG.warn("create: the ipaddress/service {}/{} on node {} has no configured thresholds.", hostAddress, serviceName, nodeId);
         }
 
-        return new ThresholdingVisitorImpl(thresholdingSet);
+        return new ThresholdingVisitorImpl(thresholdingSet, eventProxy);
     }
 
     /**
-     * <p>Constructor for ThresholdingVisitor.</p>
+     * <p>
+     * Constructor for ThresholdingVisitor.
+     * </p>
      *
-     * @param thresholdingSet a {@link org.opennms.netmgt.threshd.CollectorThresholdingSet} object.
+     * @param thresholdingSet
+     *            a {@link org.opennms.netmgt.threshd.CollectorThresholdingSet} object.
+     * @param eventProxy
      */
-    protected ThresholdingVisitorImpl(CollectorThresholdingSet thresholdingSet) {
+    protected ThresholdingVisitorImpl(CollectorThresholdingSet thresholdingSet, ThresholdingEventProxy eventProxy) {
         m_thresholdingSet = thresholdingSet;
+        m_thresholdingEventProxy = eventProxy;
         m_collectionTimestamp = new Date();
     }
     
@@ -207,6 +218,14 @@ public class ThresholdingVisitorImpl extends AbstractCollectionSetVisitor implem
      */
     public Date getCollectionTimestamp() {
     	return this.m_collectionTimestamp;
+    }
+
+    public ThresholdingEventProxy getEventProxy() {
+        return m_thresholdingEventProxy;
+    }
+
+    public void setEventProxy(ThresholdingEventProxy eventProxy) {
+        this.m_thresholdingEventProxy = eventProxy;
     }
 
     /** {@inheritDoc} */

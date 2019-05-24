@@ -60,17 +60,26 @@ public class CollectorThresholdingSet extends ThresholdingSetImpl {
     ServiceParameters svcParams;
 
     /**
-     * <p>Constructor for CollectorThresholdingSet.</p>
+     * <p>
+     * Constructor for CollectorThresholdingSet.
+     * </p>
      *
-     * @param nodeId a int.
-     * @param hostAddress a {@link java.lang.String} object.
-     * @param serviceName a {@link java.lang.String} object.
-     * @param repository a {@link org.opennms.netmgt.rrd.RrdRepository} object.
-     * @param svcParams a {@link org.opennms.netmgt.collection.api.ServiceParameters} object.
-     * @throws ThresholdInitializationException 
+     * @param nodeId
+     *            a int.
+     * @param hostAddress
+     *            a {@link java.lang.String} object.
+     * @param serviceName
+     *            a {@link java.lang.String} object.
+     * @param repository
+     *            a {@link org.opennms.netmgt.rrd.RrdRepository} object.
+     * @param svcParams
+     *            a {@link org.opennms.netmgt.collection.api.ServiceParameters} object.
+     * @param eventProxy
+     * @throws ThresholdInitializationException
      */
-    public CollectorThresholdingSet(int nodeId, String hostAddress, String serviceName, RrdRepository repository, ServiceParameters svcParams, ResourceStorageDao resourceStorageDao) throws ThresholdInitializationException {
-        super(nodeId, hostAddress, serviceName, repository);
+    public CollectorThresholdingSet(int nodeId, String hostAddress, String serviceName, RrdRepository repository, ServiceParameters svcParams,
+            ResourceStorageDao resourceStorageDao, ThresholdingEventProxy eventProxy) throws ThresholdInitializationException {
+        super(nodeId, hostAddress, serviceName, repository, eventProxy);
         m_resourceStorageDao = resourceStorageDao;
         String storeByIfAliasString = svcParams.getStoreByIfAlias();
         storeByIfAlias = storeByIfAliasString != null && "true".equalsIgnoreCase(storeByIfAliasString);

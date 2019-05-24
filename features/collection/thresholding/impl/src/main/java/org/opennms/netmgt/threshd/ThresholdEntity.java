@@ -368,4 +368,8 @@ public final class ThresholdEntity implements Cloneable {
         return s_thresholdEvaluators;
     }
 
+    public void setEventProxy(ThresholdingEventProxy eventProxy) {
+        m_thresholdingEventProxy = eventProxy;
+    }
+
 }

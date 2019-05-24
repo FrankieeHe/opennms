@@ -289,11 +289,12 @@ public class LatencyThresholdingSetIT implements TemporaryDatabaseAware<MockData
         attributes.put("http", 200.0);
         assertTrue(thresholdingSet.hasThresholds(attributes)); // Datasource Test
 
+        addEvent(EventConstants.HIGH_THRESHOLD_EVENT_UEI, "127.0.0.1", "HTTP", 5, 100.0, 50.0, 200.0, IfLabel.NO_IFLABEL, "127.0.0.1[http]", "http", IfLabel.NO_IFLABEL, null,
+                 m_eventIpcManager.getEventAnticipator(), m_anticipatedEvents);
         for (int i = 0; i < 5; i++) {
             thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
         }
 
-        addEvent(EventConstants.HIGH_THRESHOLD_EVENT_UEI, "127.0.0.1", "HTTP", 5, 100.0, 50.0, 200.0, IfLabel.NO_IFLABEL, "127.0.0.1[http]", "http", IfLabel.NO_IFLABEL, null, m_eventIpcManager.getEventAnticipator(), m_anticipatedEvents);
         verifyEvents(0);
     }
 
@@ -323,9 +324,11 @@ public class LatencyThresholdingSetIT implements TemporaryDatabaseAware<MockData
         attributes.put("median", 100.0);
         attributes.put(PollStatus.PROPERTY_RESPONSE_TIME, 100.0);
         assertTrue(thresholdingSet.hasThresholds(attributes));
+
+        addEvent(EventConstants.HIGH_THRESHOLD_EVENT_UEI, "127.0.0.1", "StrafePing", 1, 50.0, 25.0, 60.0, ifName, "127.0.0.1[StrafePing]", "loss", "eth0", null,
+                 m_eventIpcManager.getEventAnticipator(), m_anticipatedEvents);
         thresholdingSet.applyThresholds("StrafePing", attributes, m_ifLabelDao);
 
-        addEvent(EventConstants.HIGH_THRESHOLD_EVENT_UEI, "127.0.0.1", "StrafePing", 1, 50.0, 25.0, 60.0, ifName, "127.0.0.1[StrafePing]", "loss", "eth0", null, m_eventIpcManager.getEventAnticipator(), m_anticipatedEvents);
         verifyEvents(0);
     }
 
@@ -363,20 +366,21 @@ public class LatencyThresholdingSetIT implements TemporaryDatabaseAware<MockData
         }
         verifyEvents(0);
 
+        addEvent(EventConstants.HIGH_THRESHOLD_EVENT_UEI, "127.0.0.1", "HTTP", 5, 100.0, 50.0, 200.0, ifName, "127.0.0.1[http]", "http", ifName, ifIndex.toString(),
+                 m_eventIpcManager.getEventAnticipator(), m_anticipatedEvents);
         if (thresholdingSet.hasThresholds(attributes)) {
             LOG.debug("testLatencyThresholdingSet: run number 5");
             thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
         }
-        addEvent(EventConstants.HIGH_THRESHOLD_EVENT_UEI, "127.0.0.1", "HTTP", 5, 100.0, 50.0, 200.0, ifName, "127.0.0.1[http]", "http", ifName, ifIndex.toString(),
-                 m_eventIpcManager.getEventAnticipator(), m_anticipatedEvents);
         verifyEvents(0);
 
         // Test Rearm
+        addEvent(EventConstants.HIGH_THRESHOLD_REARM_EVENT_UEI, "127.0.0.1", "HTTP", 5, 100.0, 50.0, 40.0, ifName, "127.0.0.1[http]", "http", ifName, ifIndex.toString(),
+                 m_eventIpcManager.getEventAnticipator(), m_anticipatedEvents);
         if (thresholdingSet.hasThresholds(attributes)) {
             attributes.put("http", 40.0);
             thresholdingSet.applyThresholds("http", attributes, m_ifLabelDao);
         }
-        addEvent(EventConstants.HIGH_THRESHOLD_REARM_EVENT_UEI, "127.0.0.1", "HTTP", 5, 100.0, 50.0, 40.0, ifName, "127.0.0.1[http]", "http", ifName, ifIndex.toString(), m_eventIpcManager.getEventAnticipator(), m_anticipatedEvents);
         verifyEvents(0);
     }
 

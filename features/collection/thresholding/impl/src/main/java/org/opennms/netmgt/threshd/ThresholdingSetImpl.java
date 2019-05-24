@@ -75,6 +75,8 @@ public class ThresholdingSetImpl {
 
     protected ThresholdsDao m_thresholdsDao;
 
+    protected ThresholdingEventProxy m_eventProxy;
+
     private boolean m_initialized = false;
     private boolean m_hasThresholds = false;
 
@@ -82,20 +84,30 @@ public class ThresholdingSetImpl {
     protected final List<String> m_scheduledOutages = new ArrayList<>();
 
     /**
-     * <p>Constructor for ThresholdingSet.</p>
+     * <p>
+     * Constructor for ThresholdingSet.
+     * </p>
      *
-     * @param nodeId a int.
-     * @param hostAddress a {@link java.lang.String} object.
-     * @param serviceName a {@link java.lang.String} object.
-     * @param repository a {@link org.opennms.netmgt.rrd.RrdRepository} object.
-     * @param interval a long.
-     * @throws ThresholdInitializationException 
+     * @param nodeId
+     *            a int.
+     * @param hostAddress
+     *            a {@link java.lang.String} object.
+     * @param serviceName
+     *            a {@link java.lang.String} object.
+     * @param repository
+     *            a {@link org.opennms.netmgt.rrd.RrdRepository} object.
+     * @param eventProxy
+     * @param interval
+     *            a long.
+     * @throws ThresholdInitializationException
      */
-    public ThresholdingSetImpl(int nodeId, String hostAddress, String serviceName, RrdRepository repository) throws ThresholdInitializationException {
+    public ThresholdingSetImpl(int nodeId, String hostAddress, String serviceName, RrdRepository repository, ThresholdingEventProxy eventProxy)
+            throws ThresholdInitializationException {
         m_nodeId = nodeId;
         m_hostAddress = (hostAddress == null ? null : hostAddress.intern());
         m_serviceName = (serviceName == null ? null : serviceName.intern());
         m_repository = repository;
+        m_eventProxy = eventProxy;
         initThresholdsDao();
         initialize();
         if (!m_initialized) {
@@ -412,6 +424,7 @@ public class ThresholdingSetImpl {
             try {
                 ThresholdingConfigFactory.init();
                 defaultThresholdsDao.setThresholdingConfigFactory(ThresholdingConfigFactory.getInstance());
+                defaultThresholdsDao.setEventProxy(m_eventProxy);
                 defaultThresholdsDao.afterPropertiesSet();
             } catch (final Throwable t) {
                 final ThresholdInitializationException tie = new ThresholdInitializationException("Could not initialize DefaultThresholdsDao.", t);

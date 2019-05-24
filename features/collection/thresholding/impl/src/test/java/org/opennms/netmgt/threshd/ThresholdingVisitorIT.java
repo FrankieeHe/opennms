@@ -140,6 +140,8 @@ public class ThresholdingVisitorIT {
     private FilesystemResourceStorageDao m_resourceStorageDao;
     private LocationAwareSnmpClient m_locationAwareSnmpClient = new LocationAwareSnmpClientRpcImpl(new MockRpcClientFactory());
 
+    private MockEventIpcManager eventMgr;
+
     private static final Comparator<Parm> PARM_COMPARATOR = new Comparator<Parm>() {
         @Override
         public int compare(Parm o1, Parm o2) {
@@ -232,7 +234,7 @@ public class ThresholdingVisitorIT {
         EasyMock.replay(m_filterDao);
 
         m_anticipator = new EventAnticipator();
-        MockEventIpcManager eventMgr = new MockEventIpcManager();
+        eventMgr = new MockEventIpcManager();
         eventMgr.setEventAnticipator(m_anticipator);
         eventMgr.setSynchronous(true);
         EventIpcManager eventdIpcMgr = (EventIpcManager)eventMgr;
@@ -596,11 +598,11 @@ public class ThresholdingVisitorIT {
         List<ThresholdingVisitor> visitors = new ArrayList<>();
         for (int i=1; i<=5; i++) {
             String ipAddress = baseIpAddress + i;
-            ThresholdingVisitor visitor = ThresholdingVisitorImpl.create(i, ipAddress, "SNMP", getRepository(), svcParams, m_resourceStorageDao);
+            ThresholdingVisitor visitor = ThresholdingVisitorImpl.create(i, ipAddress, "SNMP", getRepository(), svcParams, m_resourceStorageDao, null);
             assertNotNull(visitor);
             visitors.add(visitor);
             if (i == 5) {
-                ThresholdingVisitor httpVisitor = ThresholdingVisitorImpl.create(i, ipAddress, "HTTP", getRepository(), svcParams, m_resourceStorageDao);
+                ThresholdingVisitor httpVisitor = ThresholdingVisitorImpl.create(i, ipAddress, "HTTP", getRepository(), svcParams, m_resourceStorageDao, null);
                 assertNotNull(httpVisitor);
                 visitors.add(httpVisitor);
             }
@@ -1192,7 +1194,7 @@ public class ThresholdingVisitorIT {
         for (int i=1; i<=numOfNodes; i++) {
             System.err.println("----------------------------------------------------------------------------------- visitor #" + i);
             String ipAddress = baseIpAddress + i;
-            ThresholdingVisitor visitor = ThresholdingVisitorImpl.create(1, ipAddress, "SNMP", getRepository(), svcParams, m_resourceStorageDao);
+            ThresholdingVisitor visitor = ThresholdingVisitorImpl.create(1, ipAddress, "SNMP", getRepository(), svcParams, m_resourceStorageDao, null);
             assertNotNull(visitor);
             assertEquals(4, ((ThresholdingVisitorImpl) visitor).getThresholdGroups().size()); // mib2, cisco, ciscoIPRA, ciscoNAS
         }
@@ -1651,7 +1653,10 @@ public class ThresholdingVisitorIT {
 
     private ThresholdingVisitor createVisitor(Map<String, Object> params) throws ThresholdInitializationException {
         ServiceParameters svcParams = new ServiceParameters(params);
-        ThresholdingVisitor visitor = ThresholdingVisitorImpl.create(1, "127.0.0.1", "SNMP", getRepository(), svcParams, m_resourceStorageDao);
+        ThresholdingEventProxyImpl eventProxy = new ThresholdingEventProxyImpl();
+        eventProxy.setEventMgr(eventMgr);
+        ThresholdingVisitorImpl visitor = (ThresholdingVisitorImpl) ThresholdingVisitorImpl.create(1, "127.0.0.1", "SNMP", getRepository(), svcParams, m_resourceStorageDao,
+                                                                                                   eventProxy);
         assertNotNull(visitor);
         return visitor;
     }
