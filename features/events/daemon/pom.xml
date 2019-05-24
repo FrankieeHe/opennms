@@ -36,12 +36,21 @@
       <artifactId>org.opennms.features.events.api</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.opennms.features.events.sink</groupId>
+      <artifactId>org.opennms.features.events.sink.dispatcher</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.opennms</groupId>
       <artifactId>opennms-dao-api</artifactId>
     </dependency>
     <dependency>
       <groupId>commons-beanutils</groupId>
       <artifactId>commons-beanutils</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.opennms.core.ipc.sink</groupId>
+      <artifactId>org.opennms.core.ipc.sink.xml</artifactId>
     </dependency>
 
     <!-- Test dependencies -->
@@ -93,10 +102,6 @@
       <artifactId>org.opennms.features.collection.persistence.rrd</artifactId>
       <scope>test</scope>
     </dependency>
-	<dependency>
-	  <groupId>org.opennms.core.ipc.sink</groupId>
-	  <artifactId>org.opennms.core.ipc.sink.xml</artifactId>
-	</dependency>
 	<dependency>
       <groupId>org.opennms.core.test-api</groupId>
       <artifactId>org.opennms.core.test-api.kafka</artifactId>
