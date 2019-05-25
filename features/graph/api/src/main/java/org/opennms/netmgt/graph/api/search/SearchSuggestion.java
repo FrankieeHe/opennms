@@ -31,6 +31,8 @@ package org.opennms.netmgt.graph.api.search;
 import java.util.Comparator;
 import java.util.Objects;
 
+import com.google.common.base.MoreObjects;
+
 /**
  * A {@link SearchSuggestion} is provided to the user and was created from a (partial) search query.
  * A suggestion is a very abstract and may not directly related to a vertex. For example a category.
@@ -107,5 +109,14 @@ public class SearchSuggestion implements Comparable<SearchSuggestion> {
                         .thenComparing(SearchSuggestion::getProvider)
                         .thenComparing(SearchSuggestion::getContext)
         );
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                .add("context", context)
+                .add("label", label)
+                .add("provider", provider)
+                .toString();
     }
 }

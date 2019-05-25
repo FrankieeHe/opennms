@@ -52,7 +52,7 @@ public class ApplicationSearchProvider implements SearchProvider {
 
     private final ApplicationDao applicationDao;
 
-    private final static String PROVIDER_ID = ApplicationSearchProvider.class.getSimpleName();
+    public final static String PROVIDER_ID = ApplicationSearchProvider.class.getSimpleName();
 
     public ApplicationSearchProvider(ApplicationDao applicationDao) {
         Objects.requireNonNull(applicationDao);
