@@ -30,7 +30,7 @@ package org.opennms.netmgt.graph.api.search;
 
 import java.util.List;
 
-import org.opennms.netmgt.graph.api.Vertex;
+import org.opennms.netmgt.graph.api.generic.GenericVertex;
 
 /**
  * Service to search all graphs
@@ -47,5 +47,5 @@ public interface GraphSearchService {
      */
     List<SearchSuggestion> getSuggestions(String namespace, String input);
 
-    List<Vertex> search(SearchCriteria searchCriteria);
+    List<GenericVertex> search(SearchCriteria searchCriteria);
 }
